@@ -18,7 +18,7 @@ enum Constants {
     // MARK: - Layout Padding
 
     /// Horizontal padding for FabBar positioning.
-    static let horizontalPadding: CGFloat = 16
+    static let horizontalPadding: CGFloat = 21
 
     /// Bottom padding for FabBar positioning.
     /// Provides clearance above the home indicator.

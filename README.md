@@ -124,6 +124,34 @@ FabBarItem(
 )
 ```
 
+### Conditional Visibility
+
+Hide the FabBar based on app state (e.g., during selection mode):
+
+```swift
+.fabBar(
+    selection: $selectedTab,
+    items: items,
+    action: action,
+    isVisible: !isSelecting
+)
+```
+
+### Manual Positioning
+
+For more control, use the `FabBar` view directly instead of the modifier. Apply 21pt padding on all sides:
+
+```swift
+.safeAreaBar(edge: .bottom) {
+    if horizontalSizeClass == .compact {
+        FabBar(selection: $selectedTab, items: items, action: action)
+            .padding(.horizontal, 21)
+            .padding(.bottom, 21)
+    }
+}
+.ignoresSafeArea(.container, edges: .bottom)
+```
+
 ## Known Limitations
 
 **Color clipping during drag:** The native iOS 26 tab bar uses the glass bubble as a real-time clipping mask. Icon and text show the active tint inside the bubble and inactive tint outside, even mid-drag. FabBar highlights tabs fully when the bubble moves over them rather than clipping. Most noticeable during slow drags between tabs.
