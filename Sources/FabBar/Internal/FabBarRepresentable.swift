@@ -70,8 +70,10 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
         // needs to know the final selection for when onHighlightEnd is called
         uiView.labelsOverlay.setSelectedIndex(newIndex, animated: false)
 
-        // Set accent color from the view's inherited tintColor, converted to concrete color
-        if let tint = uiView.tintColor {
+        // Set accent color from the view's inherited tintColor, converted to concrete color.
+        // Only update when tintAdjustmentMode is normal - when dimmed (e.g. sheet presented),
+        // tintColor returns a dimmed gray which would incorrectly overwrite the accent color.
+        if uiView.tintAdjustmentMode == .normal, let tint = uiView.tintColor {
             let concreteAccentColor = UIColor(cgColor: tint.cgColor)
             uiView.labelsOverlay.activeTintColor = concreteAccentColor
         }
