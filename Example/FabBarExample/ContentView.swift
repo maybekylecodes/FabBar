@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var showingSettings = false
     @State private var tabCount = 3
     @State private var useNativeTabBar = false
+    @State private var showActivityBadge = true
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     private var tabBarVisibility: Visibility {
@@ -36,7 +37,7 @@ struct ContentView: View {
             }),
             FabBarTab(value: .activity, title: "Activity", systemImage: "bell.fill", onReselect: {
                 print("Reselected: activity")
-            }),
+            }, badge: showActivityBadge ? FabBarBadge() : nil),
         ]
         return Array(allTabs.prefix(tabCount))
     }
@@ -65,7 +66,7 @@ struct ContentView: View {
                 .presentationDetents([.medium])
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView(tabCount: $tabCount, useNativeTabBar: $useNativeTabBar)
+            SettingsView(tabCount: $tabCount, useNativeTabBar: $useNativeTabBar, showActivityBadge: $showActivityBadge)
                 .presentationDetents([.medium])
         }
         .onChangeCompat(of: tabCount) {
@@ -155,6 +156,7 @@ struct ContentView: View {
 struct SettingsView: View {
     @Binding var tabCount: Int
     @Binding var useNativeTabBar: Bool
+    @Binding var showActivityBadge: Bool
 
     var body: some View {
         NavigationStack {
@@ -171,6 +173,10 @@ struct SettingsView: View {
                             Text("4").tag(4)
                         }
                         .pickerStyle(.segmented)
+                    }
+
+                    Section("Badges") {
+                        Toggle("Activity Badge", isOn: $showActivityBadge)
                     }
                 }
             }

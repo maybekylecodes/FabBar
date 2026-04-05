@@ -51,6 +51,17 @@ enum Constants {
     /// With 3+ tabs, segments auto-distribute to fill the available space.
     static let fewTabsSegmentWidth: CGFloat = 98
 
+    // MARK: - Badge Dot
+
+    /// Diameter of the unread badge dot.
+    static let badgeDotDiameter: CGFloat = 8
+
+    /// Horizontal offset of the badge dot center from the icon area center toward the trailing edge.
+    static let badgeDotTrailingOffset: CGFloat = 10
+
+    /// Vertical offset of the badge dot center from the icon area center (negative = upward).
+    static let badgeDotTopOffset: CGFloat = -8
+
 }
 
 /// Logger for FabBar warnings and diagnostics.

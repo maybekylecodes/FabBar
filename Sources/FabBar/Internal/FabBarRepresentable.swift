@@ -75,7 +75,15 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
             }
 
             configureSegmentContent(on: control)
+            context.coordinator.previousBadges = tabs.map(\.badge)
             (uiView as? TabBarContainerView)?.updateTabCount(tabs.count)
+        }
+
+        // Update badges in-place when only badge state changed (not tab identity)
+        let currentBadges = tabs.map(\.badge)
+        if currentBadges != context.coordinator.previousBadges {
+            context.coordinator.previousBadges = currentBadges
+            control.updateBadges(currentBadges)
         }
 
         let newIndex = tabs.firstIndex { $0.value == activeTab } ?? 0
@@ -114,11 +122,16 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
     }
 
     private func makeContentView(for tab: FabBarTab<Value>) -> TabItemContentView {
+        let view: TabItemContentView
         if let imageName = tab.image {
-            TabItemContentView(title: tab.title, imageName: imageName, imageBundle: tab.imageBundle)
+            view = TabItemContentView(title: tab.title, imageName: imageName, imageBundle: tab.imageBundle)
         } else {
-            TabItemContentView(title: tab.title, symbolName: tab.systemImage ?? "")
+            view = TabItemContentView(title: tab.title, symbolName: tab.systemImage ?? "")
         }
+        if let badge = tab.badge {
+            view.updateBadge(color: UIColor(badge.color), isVisible: true)
+        }
+        return view
     }
 
     private func segmentTintColor(for traitCollection: UITraitCollection) -> UIColor {
@@ -134,11 +147,13 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
     class Coordinator: NSObject {
         var parent: FabBarRepresentable<Value>
         var previousTabValues: [Value]
+        var previousBadges: [FabBarBadge?]
         weak var segmentedControl: TabBarSegmentedControl?
 
         init(parent: FabBarRepresentable<Value>) {
             self.parent = parent
             self.previousTabValues = parent.tabs.map(\.value)
+            self.previousBadges = parent.tabs.map(\.badge)
         }
 
         @objc func tabSelected(_ control: UISegmentedControl) {

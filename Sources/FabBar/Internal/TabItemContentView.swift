@@ -15,6 +15,7 @@ final class TabItemContentView: UIView {
 
     private let font = UIFont.systemFont(ofSize: Constants.tabTitleFontSize, weight: .semibold)
     private let imageAreaHeight = Constants.iconViewSize
+    private var badgeDotLayer: CAShapeLayer?
 
     init(title: String, symbolName: String) {
         self.title = title
@@ -69,6 +70,43 @@ final class TabItemContentView: UIView {
         let contentWidth = max(icon?.size.width ?? 0, textSize.width)
         let height = imageAreaHeight + textSize.height
         return CGSize(width: contentWidth, height: height)
+    }
+
+    // MARK: - Badge
+
+    func updateBadge(color: UIColor?, isVisible: Bool) {
+        if isVisible, let color {
+            if badgeDotLayer == nil {
+                let dot = CAShapeLayer()
+                let diameter = Constants.badgeDotDiameter
+                dot.path = UIBezierPath(ovalIn: CGRect(x: 0, y: 0, width: diameter, height: diameter)).cgPath
+                layer.addSublayer(dot)
+                badgeDotLayer = dot
+            }
+            badgeDotLayer?.fillColor = color.cgColor
+            badgeDotLayer?.isHidden = false
+            updateBadgeDotPosition()
+        } else {
+            badgeDotLayer?.isHidden = true
+        }
+    }
+
+    private func updateBadgeDotPosition() {
+        guard let dot = badgeDotLayer else { return }
+        let diameter = Constants.badgeDotDiameter
+        let centerX = bounds.midX + Constants.badgeDotTrailingOffset
+        let centerY = (imageAreaHeight / 2) + Constants.badgeDotTopOffset
+        dot.frame = CGRect(
+            x: centerX - diameter / 2,
+            y: centerY - diameter / 2,
+            width: diameter,
+            height: diameter
+        )
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        updateBadgeDotPosition()
     }
 
     // MARK: - Drawing

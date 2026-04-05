@@ -1,3 +1,4 @@
+import SwiftUI
 import UIKit
 
 /// A UISegmentedControl subclass customized for use as a tab bar replacement.
@@ -119,6 +120,17 @@ final class TabBarSegmentedControl: UISegmentedControl {
         contentViews = baseViews
         accentContentViews = accentViews
         setNeedsLayout()
+    }
+
+    /// Updates badge dots on existing content views without rebuilding segments.
+    func updateBadges(_ badges: [FabBarBadge?]) {
+        for (index, badge) in badges.enumerated() {
+            guard index < contentViews.count, index < accentContentViews.count else { continue }
+            let isVisible = badge != nil
+            let color = badge.map { UIColor($0.color) }
+            contentViews[index].updateBadge(color: color, isVisible: isVisible)
+            accentContentViews[index].updateBadge(color: color, isVisible: isVisible)
+        }
     }
 
     /// Finds each internal segment view and injects base + accent `TabItemContentView`s as subviews.
