@@ -5,7 +5,6 @@ import UIKit
 /// Tab content (icon + label) is injected directly into each segment's view subtree so that
 /// the glass magnification effect applies to the content. SF Symbols remain vector-based
 /// and scale at any resolution, avoiding rasterization issues in accessibility popovers.
-@available(iOS 26.0, *)
 struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
     var tabs: [FabBarTab<Value>]
     var action: FabBarAction
@@ -16,7 +15,7 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
         Coordinator(parent: self)
     }
 
-    func makeUIView(context: Context) -> GlassTabBarView {
+    func makeUIView(context: Context) -> UIView {
         let images = tabs.compactMap { _ in
             UIImage(systemName: "circle")
         }
@@ -39,8 +38,11 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
             }
         }
 
-        // Wrap in glass tab bar view with segmented control and FAB
-        let container = GlassTabBarView(
+        // Store reference for use in updateUIView
+        context.coordinator.segmentedControl = control
+
+        // Use factory to create the appropriate container (glass on iOS 26+, blur on iOS 16-25)
+        let container = TabBarContainerFactory.makeContainer(
             segmentedControl: control,
             tabCount: tabs.count,
             action: action
@@ -49,10 +51,10 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
         return container
     }
 
-    func updateUIView(_ uiView: GlassTabBarView, context: Context) {
+    func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.parent = self
 
-        let control = uiView.segmentedControl
+        guard let control = context.coordinator.segmentedControl else { return }
         control.selectedSegmentTintColor = segmentTintColor(for: uiView.traitCollection)
 
         // Sync segments when tabs change (count, order, or identity)
@@ -73,7 +75,7 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
             }
 
             configureSegmentContent(on: control)
-            uiView.updateTabCount(tabs.count)
+            (uiView as? TabBarContainerView)?.updateTabCount(tabs.count)
         }
 
         let newIndex = tabs.firstIndex { $0.value == activeTab } ?? 0
@@ -132,6 +134,7 @@ struct FabBarRepresentable<Value: Hashable>: UIViewRepresentable {
     class Coordinator: NSObject {
         var parent: FabBarRepresentable<Value>
         var previousTabValues: [Value]
+        weak var segmentedControl: TabBarSegmentedControl?
 
         init(parent: FabBarRepresentable<Value>) {
             self.parent = parent

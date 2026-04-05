@@ -8,7 +8,6 @@ enum AppTab: Hashable {
     case activity
 }
 
-@available(iOS 26.0, *)
 struct ContentView: View {
     @State private var selectedTab: AppTab = .home
     @State private var showingSheet = false
@@ -43,40 +42,11 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            Tab("Home", systemImage: "house.fill", value: AppTab.home) {
-                NavigationStack {
-                    TabContentPlaceholder(title: "Home", systemImage: "house.fill")
-                        .navigationTitle("Home")
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button {
-                                    showingSettings = true
-                                } label: {
-                                    Image(systemName: "gearshape")
-                                }
-                            }
-                        }
-                }
-                .fabBarSafeAreaPadding()
-                .toolbarVisibility(tabBarVisibility, for: .tabBar)
-            }
-
-            Tab("Explore", systemImage: "map.fill", value: AppTab.explore) {
-                ExploreTabView()
-                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
-            }
-
-            Tab("Profile", systemImage: "person.fill", value: AppTab.profile) {
-                TabContentView(title: "Profile", systemImage: "person.fill")
-                    .fabBarSafeAreaPadding()
-                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
-            }
-
-            Tab("Activity", systemImage: "bell.fill", value: AppTab.activity) {
-                TabContentView(title: "Activity", systemImage: "bell.fill")
-                    .fabBarSafeAreaPadding()
-                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
+        Group {
+            if #available(iOS 18.0, *) {
+                tabViewModern
+            } else {
+                tabViewLegacy
             }
         }
         .fabBar(
@@ -98,16 +68,90 @@ struct ContentView: View {
             SettingsView(tabCount: $tabCount, useNativeTabBar: $useNativeTabBar)
                 .presentationDetents([.medium])
         }
-        .onChange(of: tabCount) {
+        .onChangeCompat(of: tabCount) {
             // Reset to home if the selected tab is no longer visible
             if !visibleTabs.contains(where: { $0.value == selectedTab }) {
                 selectedTab = .home
             }
         }
     }
+
+    // MARK: - iOS 18+ Tab API
+
+    @available(iOS 18.0, *)
+    private var tabViewModern: some View {
+        TabView(selection: $selectedTab) {
+            Tab("Home", systemImage: "house.fill", value: AppTab.home) {
+                homeContent
+            }
+
+            Tab("Explore", systemImage: "map.fill", value: AppTab.explore) {
+                ExploreTabView()
+                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
+            }
+
+            Tab("Profile", systemImage: "person.fill", value: AppTab.profile) {
+                TabContentView(title: "Profile", systemImage: "person.fill")
+                    .fabBarSafeAreaPadding()
+                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
+            }
+
+            Tab("Activity", systemImage: "bell.fill", value: AppTab.activity) {
+                TabContentView(title: "Activity", systemImage: "bell.fill")
+                    .fabBarSafeAreaPadding()
+                    .toolbarVisibility(tabBarVisibility, for: .tabBar)
+            }
+        }
+    }
+
+    // MARK: - iOS 16-17 TabView + tag API
+
+    private var tabViewLegacy: some View {
+        TabView(selection: $selectedTab) {
+            homeContent
+                .tabItem { Label("Home", systemImage: "house.fill") }
+                .tag(AppTab.home)
+
+            ExploreTabView()
+                .toolbarVisibility(tabBarVisibility, for: .tabBar)
+                .tabItem { Label("Explore", systemImage: "map.fill") }
+                .tag(AppTab.explore)
+
+            TabContentView(title: "Profile", systemImage: "person.fill")
+                .fabBarSafeAreaPadding()
+                .toolbarVisibility(tabBarVisibility, for: .tabBar)
+                .tabItem { Label("Profile", systemImage: "person.fill") }
+                .tag(AppTab.profile)
+
+            TabContentView(title: "Activity", systemImage: "bell.fill")
+                .fabBarSafeAreaPadding()
+                .toolbarVisibility(tabBarVisibility, for: .tabBar)
+                .tabItem { Label("Activity", systemImage: "bell.fill") }
+                .tag(AppTab.activity)
+        }
+    }
+
+    // MARK: - Shared Tab Content
+
+    private var homeContent: some View {
+        NavigationStack {
+            TabContentPlaceholder(title: "Home", systemImage: "house.fill")
+                .navigationTitle("Home")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                        }
+                    }
+                }
+        }
+        .fabBarSafeAreaPadding()
+        .toolbarVisibility(tabBarVisibility, for: .tabBar)
+    }
 }
 
-@available(iOS 26.0, *)
 struct SettingsView: View {
     @Binding var tabCount: Int
     @Binding var useNativeTabBar: Bool
@@ -203,10 +247,20 @@ struct ExploreTabView: View {
     }
 }
 
-#Preview {
-    if #available(iOS 26.0, *) {
-        ContentView()
-    } else {
-        Text("Requires iOS 26")
+// MARK: - onChange Compatibility
+
+private extension View {
+    /// Compatibility wrapper for onChange that works on iOS 16+.
+    @ViewBuilder
+    func onChangeCompat<V: Equatable>(of value: V, perform action: @escaping () -> Void) -> some View {
+        if #available(iOS 17.0, *) {
+            self.onChange(of: value) { action() }
+        } else {
+            self.onChange(of: value) { _ in action() }
+        }
     }
+}
+
+#Preview {
+    ContentView()
 }

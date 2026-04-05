@@ -3,7 +3,7 @@ import UIKit
 /// The root UIKit view that assembles the tab bar with glass effects.
 /// Uses UIGlassContainerEffect to enable morphing between the segmented control and FAB.
 @available(iOS 26.0, *)
-final class GlassTabBarView: UIView {
+final class GlassTabBarView: UIView, TabBarContainerView {
     let containerEffectView: UIVisualEffectView
     let segmentedGlassView: UIVisualEffectView
     let segmentedControl: TabBarSegmentedControl

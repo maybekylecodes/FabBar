@@ -6,7 +6,6 @@ import UIKit
 /// When the popover copies segment content, it archives this view and unarchives a copy. Because the
 /// symbol name and title are encoded as simple strings, the copy can re-render via `draw(_:)` at whatever
 /// scale the popover uses — producing crisp output without any timing hacks or pre-rendered bitmaps.
-@available(iOS 26.0, *)
 @objc(FabBarTabItemContentView)
 final class TabItemContentView: UIView {
     private var symbolName: String = ""

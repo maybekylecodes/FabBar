@@ -3,12 +3,11 @@ import SwiftUI
 /// View modifier that positions a FabBar at the bottom of the view.
 ///
 /// This modifier handles all the layout details:
-/// - Wraps in `.safeAreaBar(edge: .bottom)`
+/// - Wraps in `.safeAreaBar(edge: .bottom)` on iOS 26+, `.overlay` on older versions
 /// - Applies appropriate padding
 /// - Ignores bottom safe area for manual positioning
 /// - Hides automatically on regular horizontal size class (iPad)
 /// - Injects calculated safe area padding into the environment
-@available(iOS 26.0, *)
 struct FabBarModifier<Value: Hashable>: ViewModifier {
     @Binding var selection: Value
     let tabs: [FabBarTab<Value>]
@@ -37,26 +36,74 @@ struct FabBarModifier<Value: Hashable>: ViewModifier {
         showsFabBar ? bottomContentMargin - bottomSafeAreaInset : 0
     }
 
+    @ViewBuilder
+    private var fabBarContent: some View {
+        if showsFabBar {
+            FabBar(selection: $selection, tabs: tabs, action: action)
+                .padding(.horizontal, Constants.horizontalPadding)
+                .padding(.bottom, Constants.bottomPadding)
+        }
+    }
+
     func body(content: Content) -> some View {
-        content
-            .safeAreaBar(edge: .bottom) {
-                if showsFabBar {
-                    FabBar(selection: $selection, tabs: tabs, action: action)
-                        .padding(.horizontal, Constants.horizontalPadding)
-                        .padding(.bottom, Constants.bottomPadding)
+        if #available(iOS 26.0, *) {
+            content
+                .safeAreaBar(edge: .bottom) {
+                    fabBarContent
                 }
-            }
-            .ignoresSafeArea(.all, edges: showsFabBar ? [.bottom] : [])
-            .onGeometryChange(for: CGFloat.self) { proxy in
+                .ignoresSafeArea(.all, edges: showsFabBar ? [.bottom] : [])
+                .modifier(BottomSafeAreaReader(bottomSafeAreaInset: $bottomSafeAreaInset))
+                .environment(\.fabBarBottomSafeAreaPadding, calculatedPadding)
+        } else {
+            content
+                .overlay(alignment: .bottom) {
+                    fabBarContent
+                }
+                .ignoresSafeArea(.all, edges: showsFabBar ? [.bottom] : [])
+                .modifier(BottomSafeAreaReader(bottomSafeAreaInset: $bottomSafeAreaInset))
+                .environment(\.fabBarBottomSafeAreaPadding, calculatedPadding)
+        }
+    }
+}
+
+// MARK: - Bottom Safe Area Reader
+
+/// Reads the bottom safe area inset using the best available API for the iOS version.
+private struct BottomSafeAreaReader: ViewModifier {
+    @Binding var bottomSafeAreaInset: CGFloat
+
+    func body(content: Content) -> some View {
+        if #available(iOS 17.0, *) {
+            content.onGeometryChange(for: CGFloat.self) { proxy in
                 proxy.safeAreaInsets.bottom
             } action: { newValue in
                 bottomSafeAreaInset = newValue
             }
-            .environment(\.fabBarBottomSafeAreaPadding, calculatedPadding)
+        } else {
+            content.background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: BottomSafeAreaKey.self,
+                        value: proxy.safeAreaInsets.bottom
+                    )
+                }
+            )
+            .onPreferenceChange(BottomSafeAreaKey.self) { newValue in
+                bottomSafeAreaInset = newValue
+            }
+        }
     }
 }
 
-@available(iOS 26.0, *)
+private struct BottomSafeAreaKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// MARK: - Public API
+
 public extension View {
     /// Adds a FabBar to the bottom of the view.
     ///

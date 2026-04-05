@@ -4,7 +4,6 @@ import Foundation
 ///
 /// Each tab represents an item in the tab bar with an icon and title.
 /// The tab is identified by a generic `Value` type that must conform to `Hashable`.
-@available(iOS 26.0, *)
 public struct FabBarTab<Value: Hashable>: Identifiable {
     public var id: Value { value }
 

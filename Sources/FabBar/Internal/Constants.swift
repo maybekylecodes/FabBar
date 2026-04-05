@@ -4,7 +4,6 @@ import UIKit
 /// Centralized constants for FabBar components.
 ///
 /// All magic numbers are documented here with rationale for their values.
-@available(iOS 26.0, *)
 enum Constants {
     // MARK: - Bar Dimensions
 

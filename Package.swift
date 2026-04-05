@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "FabBar",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v16)],
     products: [
         .library(name: "FabBar", targets: ["FabBar"]),
     ],

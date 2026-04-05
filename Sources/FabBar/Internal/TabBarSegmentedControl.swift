@@ -20,7 +20,6 @@ import UIKit
 ///    appears in the accent color — matching native UITabBar behavior.
 ///
 /// 4. **Reselection callback**: Notifies when user taps an already-selected segment.
-@available(iOS 26.0, *)
 final class TabBarSegmentedControl: UISegmentedControl {
     /// The segment index before touch began, used to restore on cancel and detect actual changes.
     private var originalIndex: Int?
@@ -312,8 +311,24 @@ final class TabBarSegmentedControl: UISegmentedControl {
         return .zero
     }
 
+    /// Whether to use per-frame animated accent masking (requires iOS 26 glass indicator).
+    /// On older iOS, we snap the accent color based on the selected segment index.
+    private var usesAnimatedAccentMasking: Bool {
+        if #available(iOS 26.0, *) { return true }
+        return false
+    }
+
     /// Called each frame to update accent view masks based on the glass indicator's animated position.
     fileprivate func updateAccentMasks() {
+        if usesAnimatedAccentMasking {
+            updateAccentMasksAnimated()
+        } else {
+            updateAccentMasksSnapping()
+        }
+    }
+
+    /// iOS 26+ path: tracks the glass indicator's frame each frame for smooth masking.
+    private func updateAccentMasksAnimated() {
         let indicatorRect = currentIndicatorRect()
 
         // Pause display link when indicator is stationary to save power
@@ -334,6 +349,41 @@ final class TabBarSegmentedControl: UISegmentedControl {
         for (index, accentView) in accentContentViews.enumerated() {
             let baseView = contentViews[index]
             updateMasks(base: baseView, accent: accentView, indicatorRect: indicatorRect)
+        }
+
+        CATransaction.commit()
+    }
+
+    /// iOS 16-25 path: snaps accent color to the selected segment without animation tracking.
+    private func updateAccentMasksSnapping() {
+        // Pause quickly since there's no animated indicator to track
+        stableFrameCount += 1
+        if stableFrameCount >= Self.stableFrameThreshold {
+            displayLink?.isPaused = true
+        }
+
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+
+        for (index, accentView) in accentContentViews.enumerated() {
+            let baseView = contentViews[index]
+            let isSelected = index == selectedSegmentIndex
+
+            let accentMask = accentView.layer.mask as? CAShapeLayer ?? {
+                let m = CAShapeLayer()
+                accentView.layer.mask = m
+                return m
+            }()
+
+            if isSelected {
+                // Show accent view fully
+                accentMask.path = UIBezierPath(rect: accentView.bounds).cgPath
+                baseView.layer.mask = nil
+            } else {
+                // Hide accent view
+                accentMask.path = UIBezierPath(rect: .zero).cgPath
+                baseView.layer.mask = nil
+            }
         }
 
         CATransaction.commit()
@@ -461,7 +511,6 @@ final class TabBarSegmentedControl: UISegmentedControl {
 }
 
 /// Weak-reference proxy that prevents `CADisplayLink` from retaining the segmented control.
-@available(iOS 26.0, *)
 @MainActor
 private final class DisplayLinkProxy: NSObject {
     weak var control: TabBarSegmentedControl?

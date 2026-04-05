@@ -33,7 +33,6 @@ import SwiftUI
 ///
 /// For more control over positioning, you can use the `FabBar` view directly.
 
-@available(iOS 26.0, *)
 public struct FabBar<Value: Hashable>: View {
     /// The currently selected tab.
     @Binding public var selection: Value
