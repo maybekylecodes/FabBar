@@ -61,17 +61,29 @@ final class TabBarFinderView: UIView {
         if let cached = foundTabBar, cached.window != nil {
             return cached
         }
-        var current: UIView? = self
-        while let view = current {
-            for sibling in (view.superview?.subviews ?? []) {
-                if let tabBar = sibling as? UITabBar {
-                    return tabBar
-                }
-            }
-            if let tabBarController = view.next as? UITabBarController {
+        // Use the responder chain to find a UITabBarController
+        var responder: UIResponder? = self
+        while let current = responder {
+            if let tabBarController = current as? UITabBarController {
                 return tabBarController.tabBar
             }
-            current = view.superview
+            responder = current.next
+        }
+        // Fallback: search from the window root
+        if let window {
+            return findTabBar(in: window)
+        }
+        return nil
+    }
+
+    private func findTabBar(in view: UIView) -> UITabBar? {
+        if let tabBar = view as? UITabBar {
+            return tabBar
+        }
+        for subview in view.subviews {
+            if let tabBar = findTabBar(in: subview) {
+                return tabBar
+            }
         }
         return nil
     }
