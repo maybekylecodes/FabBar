@@ -70,7 +70,9 @@ final class TabBarSegmentedControl: UISegmentedControl {
         // Note: .tabBar trait doesn't affect VoiceOver announcements on UISegmentedControl,
         // but it's set here for semantic correctness since this control functions as a tab bar.
         accessibilityTraits = .tabBar
-        clearNativeAppearance()
+        if #unavailable(iOS 26) {
+            clearNativeAppearance()
+        }
     }
 
     /// Removes the native background, divider, and selected-state images using the documented API.
@@ -255,21 +257,27 @@ final class TabBarSegmentedControl: UISegmentedControl {
 
     // MARK: - Background Hiding
 
-    /// Hides all native chrome (backgrounds, dividers, selection indicators) in the segmented control.
+    /// Hides native chrome in the segmented control.
     ///
-    /// On iOS < 26, UISegmentedControl renders opaque internal views whose types vary by iOS version.
-    /// Rather than targeting specific classes, this hides every direct child that isn't a UISegment
-    /// container, and hides non-content views inside each segment.
+    /// On iOS 26+, only UIImageView backgrounds need hiding — the glass effect provides the visual chrome.
+    /// On iOS < 26, UISegmentedControl renders opaque internal views whose types vary by version,
+    /// so we hide everything that isn't a segment container or our injected content.
     private func hideSegmentBackgrounds() {
-        let segmentViews = Set(findSegmentViews())
-        for subview in subviews {
-            if segmentViews.contains(subview) {
-                // Inside segments: hide everything except our injected content views
-                hideNonContentViews(in: subview)
-            } else {
-                // Siblings of segments (backgrounds, dividers, indicators): hide entirely
+        if #available(iOS 26.0, *) {
+            // iOS 26: only hide UIImageView backgrounds (glass effect handles the rest)
+            for subview in subviews where subview is UIImageView {
                 subview.alpha = 0
-                subview.isHidden = true
+            }
+        } else {
+            // iOS < 26: hide all native chrome aggressively
+            let segmentViews = Set(findSegmentViews())
+            for subview in subviews {
+                if segmentViews.contains(subview) {
+                    hideNonContentViews(in: subview)
+                } else {
+                    subview.alpha = 0
+                    subview.isHidden = true
+                }
             }
         }
     }
