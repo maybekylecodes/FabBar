@@ -59,6 +59,12 @@ struct FabBarModifier<Value: Hashable>: ViewModifier {
                 .overlay(alignment: .bottom) {
                     fabBarContent
                 }
+                .background {
+                    NativeTabBarHider(isHidden: showsFabBar)
+                        .frame(width: 0, height: 0)
+                        .allowsHitTesting(false)
+                        .accessibility(hidden: true)
+                }
                 .ignoresSafeArea(.all, edges: showsFabBar ? [.bottom] : [])
                 .modifier(BottomSafeAreaReader(bottomSafeAreaInset: $bottomSafeAreaInset))
                 .environment(\.fabBarBottomSafeAreaPadding, calculatedPadding)
