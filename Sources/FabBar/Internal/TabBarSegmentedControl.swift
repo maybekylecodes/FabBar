@@ -74,9 +74,10 @@ final class TabBarSegmentedControl: UISegmentedControl {
     }
 
     /// Removes the native background, divider, and selected-state images using the documented API.
-    /// This is more reliable than hiding internal UIImageView subviews, which varies across iOS versions.
     private func clearNativeAppearance() {
-        let clear = UIImage()
+        // A 1x1 transparent image — UIImage() can produce opaque fills on some iOS versions
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 1, height: 1))
+        let clear = renderer.image { _ in }
         setBackgroundImage(clear, for: .normal, barMetrics: .default)
         setBackgroundImage(clear, for: .selected, barMetrics: .default)
         setBackgroundImage(clear, for: .highlighted, barMetrics: .default)
@@ -244,15 +245,26 @@ final class TabBarSegmentedControl: UISegmentedControl {
 
     // MARK: - Background Image Hiding
 
-    /// Hides all segment background and separator images.
+    /// Hides all segment background and separator images recursively.
     ///
     /// UISegmentedControl uses UIImageView subviews for backgrounds, separators,
     /// and selection indicators. We hide all of them because:
     /// - The glass effect comes from UIGlassEffect on the parent view, not from these images
     /// - Segmented control comes with a default background tint which we don't want to mimic the standard tab bar appearance
     private func hideSegmentBackgrounds() {
-        for subview in subviews where subview is UIImageView {
-            subview.alpha = 0
+        hideImageViews(in: self)
+    }
+
+    private func hideImageViews(in view: UIView) {
+        for subview in view.subviews {
+            // Skip our injected content views
+            if subview.tag == Self.injectedViewTag || subview.tag == Self.accentViewTag {
+                continue
+            }
+            if subview is UIImageView {
+                subview.alpha = 0
+            }
+            hideImageViews(in: subview)
         }
     }
 
