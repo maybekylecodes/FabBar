@@ -18,12 +18,15 @@ struct NativeTabBarHider: UIViewRepresentable {
 }
 
 /// Walks the UIKit view hierarchy to find and hide a UITabBar.
+/// Uses KVO to observe the tab bar's `isHidden` property and immediately
+/// re-hide it whenever SwiftUI resets it during tab transitions.
 final class TabBarFinderView: UIView {
     var tabBarIsHidden: Bool = true {
-        didSet { updateTabBarVisibility() }
+        didSet { applyVisibility() }
     }
 
     private weak var foundTabBar: UITabBar?
+    private var observation: NSKeyValueObservation?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -39,29 +42,40 @@ final class TabBarFinderView: UIView {
     override func didMoveToWindow() {
         super.didMoveToWindow()
         if window != nil {
-            // Defer to next runloop tick so the full hierarchy is assembled
             DispatchQueue.main.async { [weak self] in
-                self?.updateTabBarVisibility()
+                self?.findAndObserveTabBar()
             }
+        } else {
+            observation = nil
         }
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        updateTabBarVisibility()
+        findAndObserveTabBar()
     }
 
-    private func updateTabBarVisibility() {
+    private func findAndObserveTabBar() {
         guard let tabBar = findTabBar() else { return }
-        foundTabBar = tabBar
-        tabBar.isHidden = tabBarIsHidden
+        if tabBar !== foundTabBar {
+            foundTabBar = tabBar
+            // Observe isHidden so we can re-hide when SwiftUI resets it during tab switches
+            observation = tabBar.observe(\.isHidden, options: [.new]) { [weak self] bar, _ in
+                guard let self, self.tabBarIsHidden, !bar.isHidden else { return }
+                bar.isHidden = true
+            }
+        }
+        applyVisibility()
+    }
+
+    private func applyVisibility() {
+        foundTabBar?.isHidden = tabBarIsHidden
     }
 
     private func findTabBar() -> UITabBar? {
         if let cached = foundTabBar, cached.window != nil {
             return cached
         }
-        // Use the responder chain to find a UITabBarController
         var responder: UIResponder? = self
         while let current = responder {
             if let tabBarController = current as? UITabBarController {
@@ -69,7 +83,6 @@ final class TabBarFinderView: UIView {
             }
             responder = current.next
         }
-        // Fallback: search from the window root
         if let window {
             return findTabBar(in: window)
         }
