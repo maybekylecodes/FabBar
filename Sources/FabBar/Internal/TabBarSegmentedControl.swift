@@ -188,6 +188,16 @@ final class TabBarSegmentedControl: UISegmentedControl {
                 maskLayer.path = UIBezierPath(rect: .zero).cgPath
                 accentView.layer.mask = maskLayer
             }
+
+            // Ensure our content views render above the segment's native background views.
+            // On iOS < 26, UISegmentedControl renders opaque internal views that vary by version.
+            // Using layer.zPosition is more reliable than trying to hide every internal view.
+            if let base = segmentView.viewWithTag(Self.injectedViewTag) {
+                base.layer.zPosition = 100
+            }
+            if let accent = segmentView.viewWithTag(Self.accentViewTag) {
+                accent.layer.zPosition = 101
+            }
         }
     }
 
