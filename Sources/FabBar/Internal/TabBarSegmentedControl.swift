@@ -253,28 +253,35 @@ final class TabBarSegmentedControl: UISegmentedControl {
         }
     }
 
-    // MARK: - Background Image Hiding
+    // MARK: - Background Hiding
 
-    /// Hides all segment background and separator images recursively.
+    /// Hides all native chrome (backgrounds, dividers, selection indicators) in the segmented control.
     ///
-    /// UISegmentedControl uses UIImageView subviews for backgrounds, separators,
-    /// and selection indicators. We hide all of them because:
-    /// - The glass effect comes from UIGlassEffect on the parent view, not from these images
-    /// - Segmented control comes with a default background tint which we don't want to mimic the standard tab bar appearance
+    /// On iOS < 26, UISegmentedControl renders opaque internal views whose types vary by iOS version.
+    /// Rather than targeting specific classes, this hides every direct child that isn't a UISegment
+    /// container, and hides non-content views inside each segment.
     private func hideSegmentBackgrounds() {
-        hideImageViews(in: self)
+        let segmentViews = Set(findSegmentViews())
+        for subview in subviews {
+            if segmentViews.contains(subview) {
+                // Inside segments: hide everything except our injected content views
+                hideNonContentViews(in: subview)
+            } else {
+                // Siblings of segments (backgrounds, dividers, indicators): hide entirely
+                subview.alpha = 0
+                subview.isHidden = true
+            }
+        }
     }
 
-    private func hideImageViews(in view: UIView) {
+    /// Recursively hides all views inside a segment that aren't our injected content.
+    private func hideNonContentViews(in view: UIView) {
         for subview in view.subviews {
-            // Skip our injected content views
             if subview.tag == Self.injectedViewTag || subview.tag == Self.accentViewTag {
                 continue
             }
-            if subview is UIImageView {
-                subview.alpha = 0
-            }
-            hideImageViews(in: subview)
+            subview.alpha = 0
+            hideNonContentViews(in: subview)
         }
     }
 
