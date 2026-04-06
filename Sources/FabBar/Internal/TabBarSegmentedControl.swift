@@ -70,6 +70,19 @@ final class TabBarSegmentedControl: UISegmentedControl {
         // Note: .tabBar trait doesn't affect VoiceOver announcements on UISegmentedControl,
         // but it's set here for semantic correctness since this control functions as a tab bar.
         accessibilityTraits = .tabBar
+        clearNativeAppearance()
+    }
+
+    /// Removes the native background, divider, and selected-state images using the documented API.
+    /// This is more reliable than hiding internal UIImageView subviews, which varies across iOS versions.
+    private func clearNativeAppearance() {
+        let clear = UIImage()
+        setBackgroundImage(clear, for: .normal, barMetrics: .default)
+        setBackgroundImage(clear, for: .selected, barMetrics: .default)
+        setBackgroundImage(clear, for: .highlighted, barMetrics: .default)
+        setDividerImage(clear, forLeftSegmentState: .normal, rightSegmentState: .normal, barMetrics: .default)
+        setDividerImage(clear, forLeftSegmentState: .selected, rightSegmentState: .normal, barMetrics: .default)
+        setDividerImage(clear, forLeftSegmentState: .normal, rightSegmentState: .selected, barMetrics: .default)
     }
 
     @available(*, unavailable)
